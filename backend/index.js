@@ -1,27 +1,32 @@
-require("dotenv").config();
 const express = require("express");
+const { Pool } = require("pg");
 const cors = require("cors");
-const bodyParser = require("body-parser");
-const { Client } = require("pg");
+require("dotenv").config();
+
+const pool = new Pool({
+  user: "postgres",
+  host: "localhost",
+  database: "recipe_db",
+  password: "P0wern3t!",
+  port: 5432,
+});
 
 const app = express();
-
 app.use(cors());
-app.use(bodyParser.json());
-
-const client = new Client({
-  connectionString: process.env.DATABASE_URL,
-});
-
-client.connect();
+app.use(express.json());
 
 app.get("/recipes", async (req, res) => {
-  const recipes = await client.query("SELECT * FROM recipes");
-  res.json(recipes.rows);
+  try {
+    const client = await pool.connect();
+    const result = await client.query("SELECT * FROM recipes");
+    res.json(result.rows);
+    client.release();
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error fetching data");
+  }
 });
 
-const PORT = process.env.PORT || 3001;
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+app.listen(3001, () => {
+  console.log("Server running on port 3001");
 });
